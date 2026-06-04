@@ -6,15 +6,16 @@
 <title>燦坤 Apple Shop 行銷文案產生器 v3</title>
 <style>
   :root {
-    --primary: #1F3864;
-    --accent: #0A84FF;
-    --success: #00D26A;
-    --warning: #F58529;
-    --bg: #FAF7F2;
-    --card: #FFFFFF;
-    --border: #E5E5E5;
-    --text: #1D1D1F;
-    --muted: #6E6E73;
+    --primary: #DCEDF5;      /* 天空藍（大標題、Header） */
+    --accent: #E8A847;       /* 暖橘強調色 */
+    --success: #B3D8E5;      /* 淺天藍成功色 */
+    --warning: #E8A847;      /* 暖橘警示 */
+    --bg: #2D5A1C;           /* 深綠背景 */
+    --card: #FFFFFF;         /* 白色卡片 */
+    --border: #4A7A38;       /* 中綠邊框 */
+    --text: #1F3F12;         /* 深綠文字（卡片內） */
+    --muted: #5F7A4A;        /* 中綠副文字 */
+    --highlight: #B3D8E5;    /* 天藍高亮 */
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -24,30 +25,32 @@
   .container { max-width: 1100px; margin: 0 auto; }
   header {
     text-align: center; margin-bottom: 32px; padding: 24px;
-    background: linear-gradient(135deg, var(--primary), #2E4A8C);
-    color: white; border-radius: 16px;
+    background: var(--primary);
+    color: #2D5A1C; border-radius: 16px;
   }
   header h1 { font-size: 28px; margin-bottom: 8px; }
   header p { opacity: 0.9; font-size: 14px; }
   .card {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 12px; padding: 24px; margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    box-shadow: 0 1px 3px rgba(29,52,71,0.08);
+    color: var(--text);
   }
   .card h2 {
-    font-size: 17px; margin-bottom: 16px; color: var(--primary);
+    font-size: 17px; margin-bottom: 16px; color: #2D5A1C;
     display: flex; align-items: center; gap: 8px;
   }
   .form-group { margin-bottom: 16px; }
   label {
     display: block; font-size: 13px; font-weight: 600;
-    color: var(--muted); margin-bottom: 6px;
+    color: var(--text); margin-bottom: 6px;
   }
   input[type="text"], input[type="password"], textarea, select {
     width: 100%; padding: 10px 12px; border: 1px solid var(--border);
     border-radius: 8px; font-size: 14px; font-family: inherit;
-    background: white; transition: border-color 0.15s;
+    background: #EDF5E5; color: var(--text); transition: border-color 0.15s;
   }
+  input::placeholder, textarea::placeholder { color: #7A9560; }
   input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
   textarea { resize: vertical; min-height: 80px; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -59,50 +62,53 @@
     padding: 10px; border: 2px solid var(--border); border-radius: 8px;
     text-align: center; cursor: pointer; font-size: 13px;
     transition: all 0.15s; user-select: none;
+    background: white; color: var(--text);
   }
   .platform-chip.active {
-    border-color: var(--accent); background: #E5F0FF;
-    color: var(--accent); font-weight: 600;
+    border-color: var(--accent); background: #FDF4DC;
+    color: var(--primary); font-weight: 600;
   }
   .pdf-drop {
     border: 2px dashed var(--border); border-radius: 12px;
     padding: 32px; text-align: center; cursor: pointer;
-    transition: all 0.15s; background: #FAFAFA; display: block;
+    transition: all 0.15s; background: #EDF5E5; display: block;
+    color: var(--text);
   }
-  .pdf-drop:hover { border-color: var(--accent); background: #F5F9FF; }
-  .pdf-drop.has-file { border-color: var(--success); background: #F0FDF4; }
+  .pdf-drop:hover { border-color: var(--accent); background: #DDE8D0; }
+  .pdf-drop.has-file { border-color: var(--success); background: #D0E5B8; }
   .pdf-drop input { display: none; }
   .pdf-info { font-size: 13px; color: var(--muted); margin-top: 6px; }
   button.primary {
-    width: 100%; padding: 14px; background: var(--primary);
+    width: 100%; padding: 14px; background: #2D5A1C;
     color: white; border: none; border-radius: 10px;
     font-size: 15px; font-weight: 600; cursor: pointer;
     transition: background 0.15s;
   }
-  button.primary:hover { background: #15295A; }
+  button.primary:hover { background: #1F3F12; }
   button.primary:disabled { background: #999; cursor: not-allowed; }
   button.ghost {
     padding: 6px 12px; background: white; border: 1px solid var(--border);
     border-radius: 6px; cursor: pointer; font-size: 12px;
-    color: var(--muted); transition: all 0.15s;
+    color: var(--text); transition: all 0.15s;
   }
-  button.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  button.ghost:hover { border-color: var(--accent); color: var(--accent); background: #FDF4DC; }
   .result-card {
     background: white; border: 1px solid var(--border);
     border-radius: 12px; margin-bottom: 16px; overflow: hidden;
   }
   .result-header {
-    padding: 14px 18px; background: #F8F9FB;
+    padding: 14px 18px; background: #E8F2F6;
     border-bottom: 1px solid var(--border);
     display: flex; justify-content: space-between; align-items: center;
   }
   .platform-tag { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }
   .tag-fb { color: #4267B2; }
   .tag-ig { color: #C13584; }
-  .tag-th { color: #000; }
+  .tag-th { color: #1D3447; }
   .tag-st { color: var(--warning); }
   .result-body {
     padding: 18px; white-space: pre-wrap; font-size: 14px; line-height: 1.8;
+    background: white; color: var(--text);
   }
   .loading {
     display: flex; align-items: center; justify-content: center;
@@ -115,15 +121,16 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .error {
-    padding: 14px; background: #FEF2F2; border: 1px solid #FECACA;
-    border-radius: 8px; color: #B91C1C; font-size: 13px; white-space: pre-wrap;
+    padding: 14px; background: #FDEEDA; border: 1px solid #E8A847;
+    border-radius: 8px; color: #A65A18; font-size: 13px; white-space: pre-wrap;
   }
   .help { font-size: 12px; color: var(--muted); margin-top: 4px; }
   .help a { color: var(--accent); text-decoration: none; }
   details { margin-top: 8px; }
-  summary { cursor: pointer; font-size: 13px; color: var(--accent); user-select: none; }
+  summary { cursor: pointer; font-size: 13px; color: var(--accent); user-select: none; font-weight: 600; }
   details[open] summary { margin-bottom: 8px; }
-  .copied { color: var(--success) !important; }
+  .copied { color: var(--accent) !important; }
+  code { background: #FDF4DC; color: var(--primary); padding: 2px 6px; border-radius: 4px; font-family: Menlo, monospace; font-size: 11px; }
   .provider-tabs {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
     margin-bottom: 16px;
@@ -161,7 +168,7 @@
         <input type="password" id="ghToken" placeholder="貼上 ghp_... 開頭的 Token">
         <details style="margin-top: 6px;">
           <summary>🔰 第一次使用？點這裡看 5 步驟申請 Token</summary>
-          <div class="help" style="margin-top: 8px; padding: 12px; background: #F8F9FB; border-radius: 8px; line-height: 1.8;">
+          <div class="help" style="margin-top: 8px; padding: 12px; background: #E8F2F6; border-radius: 8px; line-height: 1.8;">
             1️⃣ 開 <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings → Tokens (classic)</a><br>
             2️⃣ 點「Generate new token (classic)」<br>
             3️⃣ Note 填「燦坤文案器」，Expiration 選 90 days<br>
@@ -309,7 +316,7 @@ function updatePdfList() {
 
   // 顯示檔案列表（可刪除）
   $("pdfList").innerHTML = pdfFiles.map((f, i) => `
-    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:6px; margin-top:4px; font-size:13px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#E8F1DE; border:1px solid #B8D4A0; border-radius:6px; margin-top:4px; font-size:13px;">
       <span>📄 ${f.name}（${f.pages} 頁，${f.text.length} 字）</span>
       <button type="button" data-idx="${i}" class="ghost remove-pdf" style="padding:2px 8px; font-size:11px;">✕ 移除</button>
     </div>
