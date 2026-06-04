@@ -182,12 +182,13 @@
     <h2>📝 活動資訊</h2>
 
     <div class="form-group">
-      <label>📎 優惠活動 PDF（必選）</label>
+      <label>📎 優惠活動 PDF（必選，可一次上傳多個檔案）</label>
       <label class="pdf-drop" id="pdfDrop">
-        <input type="file" id="pdfFile" accept="application/pdf">
-        <div id="pdfDropText">點擊或拖曳 PDF 至此</div>
+        <input type="file" id="pdfFile" accept="application/pdf" multiple>
+        <div id="pdfDropText">點擊或拖曳一個或多個 PDF 至此</div>
         <div class="pdf-info" id="pdfInfo"></div>
       </label>
+      <div id="pdfList" style="margin-top:8px;"></div>
     </div>
 
     <div class="row">
@@ -213,8 +214,17 @@
     </div>
 
     <div class="form-group">
-      <label>🎬 想凸顯的賣點 / 調性備註（選填）</label>
-      <textarea id="extraNote" placeholder="例：強調暑假購機，調性活潑"></textarea>
+      <label style="display:flex; justify-content:space-between; align-items:center;">
+        <span>🎬 想凸顯的賣點 / 調性備註（強烈建議貼入「對照表」確保金額正確）</span>
+        <button type="button" id="downloadTpl" class="ghost" style="font-size:11px;">📥 下載對照表範本</button>
+      </label>
+      <textarea id="extraNote" placeholder="【正確金額對照表（請以此為準）】
+iPhone 17 ｜ 現折 $X 起 + 贈 XXX
+MacBook Air 13&quot; M5 ｜ 滿萬送 $X 配件金
+...
+
+下載範本後填入新檔期數字，再貼回這裡" style="min-height: 120px;"></textarea>
+      <div class="help">💡 若 PDF 排版複雜，AI 可能把不同機型的金額串錯。<strong>貼一份簡單對照表</strong>可確保 100% 準確</div>
     </div>
 
     <div class="form-group">
@@ -264,28 +274,83 @@ $("platforms").addEventListener("click", (e) => {
 
 // PDF
 let pdfText = "";
-$("pdfFile").addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  $("pdfDropText").textContent = "解析中…";
-  $("pdfInfo").textContent = file.name;
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = "";
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      fullText += content.items.map(it => it.str).join(" ") + "\n";
-    }
-    pdfText = fullText.trim();
-    $("pdfDrop").classList.add("has-file");
-    $("pdfDropText").textContent = "✅ PDF 已就緒";
-    $("pdfInfo").textContent = `${file.name}（${pdf.numPages} 頁，${pdfText.length} 字）`;
-  } catch (err) {
-    $("pdfDropText").textContent = "❌ 解析失敗";
-    $("pdfInfo").textContent = err.message;
+let pdfFiles = []; // 累積多個 PDF 檔案 {name, text, pages}
+
+async function parsePdf(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    fullText += content.items.map(it => it.str).join(" ") + "\n";
   }
+  return { name: file.name, text: fullText.trim(), pages: pdf.numPages };
+}
+
+function updatePdfList() {
+  if (pdfFiles.length === 0) {
+    pdfText = "";
+    $("pdfDrop").classList.remove("has-file");
+    $("pdfDropText").textContent = "點擊或拖曳一個或多個 PDF 至此";
+    $("pdfInfo").textContent = "";
+    $("pdfList").innerHTML = "";
+    return;
+  }
+
+  // 合併所有 PDF 文字（用標題分隔）
+  pdfText = pdfFiles.map((f, i) =>
+    `\n══════ 檔案 ${i+1}：${f.name} ══════\n${f.text}`
+  ).join("\n");
+
+  $("pdfDrop").classList.add("has-file");
+  const totalChars = pdfFiles.reduce((s, f) => s + f.text.length, 0);
+  const totalPages = pdfFiles.reduce((s, f) => s + f.pages, 0);
+  $("pdfDropText").textContent = `✅ 已上傳 ${pdfFiles.length} 個 PDF`;
+  $("pdfInfo").textContent = `共 ${totalPages} 頁、${totalChars} 字`;
+
+  // 顯示檔案列表（可刪除）
+  $("pdfList").innerHTML = pdfFiles.map((f, i) => `
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:6px; margin-top:4px; font-size:13px;">
+      <span>📄 ${f.name}（${f.pages} 頁，${f.text.length} 字）</span>
+      <button type="button" data-idx="${i}" class="ghost remove-pdf" style="padding:2px 8px; font-size:11px;">✕ 移除</button>
+    </div>
+  `).join("");
+
+  // 綁定刪除按鈕
+  $("pdfList").querySelectorAll(".remove-pdf").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      pdfFiles.splice(idx, 1);
+      updatePdfList();
+    });
+  });
+}
+
+$("pdfFile").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
+
+  $("pdfDropText").textContent = "解析中…";
+  $("pdfInfo").textContent = `處理 ${files.length} 個檔案...`;
+
+  for (const file of files) {
+    try {
+      const parsed = await parsePdf(file);
+      // 避免重複（同檔名）
+      if (!pdfFiles.some(f => f.name === parsed.name)) {
+        pdfFiles.push(parsed);
+      }
+    } catch (err) {
+      alert(`解析失敗：${file.name}\n${err.message}`);
+    }
+  }
+
+  // 清空 input 讓同個檔案可以再次選擇
+  e.target.value = "";
+  updatePdfList();
 });
 
 ["dragover", "dragenter"].forEach(ev =>
@@ -297,6 +362,77 @@ $("pdfDrop").addEventListener("drop", (e) => {
     $("pdfFile").files = e.dataTransfer.files;
     $("pdfFile").dispatchEvent(new Event("change"));
   }
+});
+
+// 下載對照表範本
+$("downloadTpl").addEventListener("click", () => {
+  const tpl = `═══════════════════════════════════════
+燦坤 Apple Shop 檔期對照表（範本）
+活動期間：YYYY/MM/DD - YYYY/MM/DD
+═══════════════════════════════════════
+
+【iPhone 系列】
+─────────────────────────
+iPhone XX ｜ 現折 $X 起 ｜ 贈品：XXX
+iPhone XX Pro ｜ 現折 $X 起 ｜ 贈品：XXX
+iPhone XX Pro Max ｜ 現折 $X 起 ｜ 贈品：XXX
+
+【iPad 系列】
+─────────────────────────
+iPad mini ｜ 現折 X%
+iPad Air ｜ 現折 X%
+iPad Pro ｜ 現折 X%
+
+【Apple Watch 系列】
+─────────────────────────
+Apple Watch SE ｜ 現折 X%
+Apple Watch Series XX ｜ 現折 X%
+Apple Watch Ultra XX ｜ 現折 X%
+
+【MacBook 系列】
+─────────────────────────
+MacBook Neo ｜ 滿萬送 $X 配件金
+MacBook Air 13\\" ｜ 滿萬送 $X 配件金
+MacBook Air 15\\" ｜ 滿萬送 $X 配件金
+MacBook Pro 14\\" ｜ 滿萬送 $X 配件金
+MacBook Pro 16\\" ｜ 滿萬送 $X 配件金
+
+【Mac 桌機系列】
+─────────────────────────
+iMac ｜ 現折 X%
+Mac Studio ｜ 現折 X%
+Studio Display ｜ 現折 X%
+
+【AirPods 系列】
+─────────────────────────
+AirPods Pro X ｜ $XXXX
+AirPods X 主動式降噪 ｜ $XXXX
+AirPods X 一般版 ｜ $XXXX
+
+【展示福利品出清】
+─────────────────────────
+（如：15.3\\" MBA M4 16G/256G 原價 $41,900 → 特價 $31,999）
+
+【分期方案】
+─────────────────────────
+單機 3 期、加購配件 6-8 期、加購 AC+ 12 期
+
+═══════════════════════════════════════
+使用說明：
+1. 把 X 改成本次檔期的實際數字
+2. 不適用的品項可整段刪除
+3. 完成後整段複製貼回工具的「想凸顯的賣點」欄位
+═══════════════════════════════════════
+`;
+  const blob = new Blob([tpl], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "燦坤檔期對照表_範本.txt";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 });
 
 const DEFAULT_SYSTEM = `你是燦坤 Apple Shop 的資深社群行銷專員，負責全台燦坤 Apple Shop 門市的社群曝光內容產出。
