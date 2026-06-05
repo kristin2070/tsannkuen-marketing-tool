@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>燦坤 Apple Shop 行銷文案產生器 v3</title>
+<title>Apple Shop 行銷文案產生器</title>
 <style>
   :root {
     --primary: #2C4A5E;      /* 深海軍藍主色（標題、按鈕） */
@@ -131,20 +131,21 @@
   details[open] summary { margin-bottom: 8px; }
   .copied { color: var(--success) !important; }
   code { background: #FBF5EC; color: var(--primary); padding: 2px 6px; border-radius: 4px; font-family: Menlo, monospace; font-size: 11px; }
-  .provider-tabs {
+  .provider-tabs, .brand-tabs {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
   }
-  .tab {
-    padding: 12px; border: 2px solid var(--border); border-radius: 8px;
+  .tab, .brand-tab {
+    padding: 14px; border: 2px solid var(--border); border-radius: 10px;
     text-align: center; cursor: pointer; font-size: 14px;
     font-weight: 600; transition: all 0.15s; user-select: none;
+    background: white; color: var(--text);
   }
-  .tab.active {
-    border-color: var(--accent); background: #FCE8DF; color: var(--accent);
+  .tab.active, .brand-tab.active {
+    border-color: var(--accent); background: var(--primary); color: white;
   }
-  .provider-section { display: none; }
-  .provider-section.active { display: block; }
+  .provider-section, .brand-section { display: none; }
+  .provider-section.active, .brand-section.active { display: block; }
   @media (max-width: 700px) {
     .row { grid-template-columns: 1fr; }
     .platforms { grid-template-columns: repeat(2, 1fr); }
@@ -155,7 +156,7 @@
 <div class="container">
 
   <header>
-    <h1>🍎 燦坤 Apple Shop 行銷文案產生器</h1>
+    <h1>🍎 Apple Shop 行銷文案產生器</h1>
     <p>上傳檔期 PDF → 一鍵生成 4 平台行銷文案</p>
   </header>
 
@@ -188,14 +189,35 @@
   <div class="card">
     <h2>📝 活動資訊</h2>
 
-    <div class="form-group">
-      <label>📎 優惠活動 PDF（必選，可一次上傳多個檔案）</label>
-      <label class="pdf-drop" id="pdfDrop">
-        <input type="file" id="pdfFile" accept="application/pdf" multiple>
-        <div id="pdfDropText">點擊或拖曳一個或多個 PDF 至此</div>
-        <div class="pdf-info" id="pdfInfo"></div>
-      </label>
-      <div id="pdfList" style="margin-top:8px;"></div>
+    <div class="brand-tabs">
+      <div class="brand-tab active" data-brand="tsannkuen">🟡 燦坤 Apple Shop（PDF 上傳）</div>
+      <div class="brand-tab" data-brand="ekfamily">🔴 全國電子 Apple Shop（Excel 上傳）</div>
+    </div>
+
+    <!-- 燦坤區塊：PDF 上傳 -->
+    <div class="brand-section active" id="brand-tsannkuen">
+      <div class="form-group">
+        <label>📎 優惠活動 PDF（必選，可一次上傳多個檔案）</label>
+        <label class="pdf-drop" id="pdfDrop">
+          <input type="file" id="pdfFile" accept="application/pdf" multiple>
+          <div id="pdfDropText">點擊或拖曳一個或多個 PDF 至此</div>
+          <div class="pdf-info" id="pdfInfo"></div>
+        </label>
+        <div id="pdfList" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- 全國電子區塊：Excel 上傳 -->
+    <div class="brand-section" id="brand-ekfamily">
+      <div class="form-group">
+        <label>📊 優惠活動 Excel（必選，可一次上傳多個檔案）</label>
+        <label class="pdf-drop" id="xlsxDrop">
+          <input type="file" id="xlsxFile" accept=".xlsx,.xls" multiple>
+          <div id="xlsxDropText">點擊或拖曳一個或多個 Excel 至此</div>
+          <div class="pdf-info" id="xlsxInfo"></div>
+        </label>
+        <div id="xlsxList" style="margin-top:8px;"></div>
+      </div>
     </div>
 
     <div class="row">
@@ -204,8 +226,8 @@
         <input type="text" id="mainProduct" placeholder="例：iPhone 17 系列開賣">
       </div>
       <div class="form-group">
-        <label>🏪 門市名稱（選填）</label>
-        <input type="text" id="storeName" placeholder="例：五甲、不指定">
+        <label>🏪 門市分店（選填）</label>
+        <input type="text" id="storeName" placeholder="例：五甲店、屏東店、民族店">
       </div>
     </div>
 
@@ -254,6 +276,7 @@ MacBook Air 13&quot; M5 ｜ 滿萬送 $300 配件金
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script type="module">
 import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs";
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
@@ -369,6 +392,110 @@ $("pdfDrop").addEventListener("drop", (e) => {
   }
 });
 
+// === Brand Tab 切換 ===
+let currentBrand = "tsannkuen"; // 預設燦坤
+document.querySelectorAll(".brand-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    currentBrand = tab.dataset.brand;
+    document.querySelectorAll(".brand-tab").forEach(t => t.classList.toggle("active", t === tab));
+    document.querySelectorAll(".brand-section").forEach(s =>
+      s.classList.toggle("active", s.id === `brand-${currentBrand}`)
+    );
+  });
+});
+
+// === Excel 處理（全國電子） ===
+let xlsxText = "";
+let xlsxFiles = [];
+
+async function parseXlsx(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const workbook = XLSX.read(arrayBuffer, { type: "array" });
+
+  // 把所有 sheet 轉成文字
+  let allText = "";
+  let totalRows = 0;
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const csv = XLSX.utils.sheet_to_csv(sheet);
+    const rows = csv.split("\n").filter(r => r.trim()).length;
+    totalRows += rows;
+    allText += `\n══════ 分頁：${sheetName} ══════\n${csv}\n`;
+  }
+  return { name: file.name, text: allText.trim(), sheets: workbook.SheetNames.length, rows: totalRows };
+}
+
+function updateXlsxList() {
+  if (xlsxFiles.length === 0) {
+    xlsxText = "";
+    $("xlsxDrop").classList.remove("has-file");
+    $("xlsxDropText").textContent = "點擊或拖曳一個或多個 Excel 至此";
+    $("xlsxInfo").textContent = "";
+    $("xlsxList").innerHTML = "";
+    return;
+  }
+
+  xlsxText = xlsxFiles.map((f, i) =>
+    `\n══════ 檔案 ${i+1}：${f.name} ══════\n${f.text}`
+  ).join("\n");
+
+  $("xlsxDrop").classList.add("has-file");
+  const totalRows = xlsxFiles.reduce((s, f) => s + f.rows, 0);
+  const totalSheets = xlsxFiles.reduce((s, f) => s + f.sheets, 0);
+  $("xlsxDropText").textContent = `✅ 已上傳 ${xlsxFiles.length} 個 Excel`;
+  $("xlsxInfo").textContent = `共 ${totalSheets} 個分頁、${totalRows} 列`;
+
+  $("xlsxList").innerHTML = xlsxFiles.map((f, i) => `
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#FCE8DF; border:1px solid #F0B5A0; border-radius:6px; margin-top:4px; font-size:13px;">
+      <span>📊 ${f.name}（${f.sheets} 分頁，${f.rows} 列）</span>
+      <button type="button" data-idx="${i}" class="ghost remove-xlsx" style="padding:2px 8px; font-size:11px;">✕ 移除</button>
+    </div>
+  `).join("");
+
+  $("xlsxList").querySelectorAll(".remove-xlsx").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      xlsxFiles.splice(idx, 1);
+      updateXlsxList();
+    });
+  });
+}
+
+$("xlsxFile").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
+
+  $("xlsxDropText").textContent = "解析中…";
+  $("xlsxInfo").textContent = `處理 ${files.length} 個檔案...`;
+
+  for (const file of files) {
+    try {
+      const parsed = await parseXlsx(file);
+      if (!xlsxFiles.some(f => f.name === parsed.name)) {
+        xlsxFiles.push(parsed);
+      }
+    } catch (err) {
+      alert(`解析失敗：${file.name}\n${err.message}`);
+    }
+  }
+
+  e.target.value = "";
+  updateXlsxList();
+});
+
+["dragover", "dragenter"].forEach(ev =>
+  $("xlsxDrop").addEventListener(ev, (e) => e.preventDefault())
+);
+$("xlsxDrop").addEventListener("drop", (e) => {
+  e.preventDefault();
+  if (e.dataTransfer.files[0]) {
+    $("xlsxFile").files = e.dataTransfer.files;
+    $("xlsxFile").dispatchEvent(new Event("change"));
+  }
+});
+
 const DEFAULT_SYSTEM = `你是燦坤 Apple Shop 的資深社群行銷專員，負責全台燦坤 Apple Shop 門市的社群曝光內容產出。
 
 # 品牌調性
@@ -378,19 +505,58 @@ const DEFAULT_SYSTEM = `你是燦坤 Apple Shop 的資深社群行銷專員，�
 - 強調「在地 × Apple 專業 × 顧客省到」的核心價值
 - 喜歡用「對比」「條列」「金句」「FOMO 倒數」這類結構
 
-# 燦坤核心賣點（必須適時融入，至少 1-2 個）
-1. 全台 Apple 授權零售商，原廠保固
-2. **EPBox 手機回收機器人**：全台 20 間門市，60 秒估價＋現場轉帳
-   ⚠️ 重要：EPBox **只回收 iPhone**（手機），**不回收 iPad、Mac、Apple Watch、AirPods**
-   如果文案是 Mac/iPad/Watch 主題，可以提「Mac 舊換新加碼券」「iPad 舊換新方案」，但不要寫「用 EPBox 回收 iPad/Mac」
-3. 舊換新加碼券、門號補貼、舊機回收（這個是各品類都有，不限手機）
-4. 在地門市，現場體驗、不用預約
-5. 滿額送配件金、加購配件 95 折等優惠
+# 🚨 品牌識別鐵律（最重要！）
 
-# 固定 Hashtag 庫
-品牌主標：#燦坤AppleShop（若指定門市則加 #燦坤XX店AppleShop）
-活動 Tag：#迎新送舊 #M5世代 #讓AI跑進你的日常 #舊iPhone變頭期款 #暑假購機
-EPBox：#EPBox手機回收 #60秒換現金 #全台限定20店
+本工具服務 **兩個獨立品牌**，文案絕對不能混在一起寫：
+
+## 品牌 A：燦坤 Apple Shop
+- 門市：燦坤 五甲店
+- 品牌主標 Hashtag：**#燦坤AppleShop #燦坤五甲店AppleShop**
+- 自我稱呼：「燦坤」「燦坤 Apple Shop」「燦坤五甲店」
+
+## 品牌 B：全國電子 Apple Shop
+- 門市：全國電子 屏東店、全國電子 民族店
+- 品牌主標 Hashtag：**#全國電子AppleShop #全國電子屏東店AppleShop / #全國電子民族店AppleShop**
+- 自我稱呼：「全國電子」「全國電子 Apple Shop」「全國電子屏東店」「全國電子民族店」
+
+## 鐵律（違反會被退稿）
+1. ❌ 絕對不要寫「燦坤、全國電子」並列出現（兩家是不同公司！）
+2. ❌ 不要在燦坤的文案裡提到「全國電子」，反之亦然
+3. ✅ 用戶選哪個門市，就只寫該品牌
+4. ✅ 用戶未選門市時，寫泛稱「Apple Shop」「全台 Apple Shop」即可，**不要提任何品牌名稱**
+5. ✅ Hashtag 對應品牌：燦坤 → #燦坤AppleShop；全國電子 → #全國電子AppleShop
+
+# 兩品牌的共同／獨家賣點
+
+## 通用賣點（兩品牌都可寫）
+1. Apple 授權零售商，原廠保固
+2. **舊換新加碼券、門號補貼、舊機回收**（兩品牌都有舊換新服務）
+3. 在地門市，現場體驗、不用預約
+4. 滿額送配件金、加購配件 95 折等優惠
+
+## 🚨 EPBox 是「燦坤限定」服務（極重要鐵律）
+
+**EPBox 手機回收機器人** 是燦坤集團獨家服務，全國電子完全沒有！
+
+### 寫文案時的鐵律：
+| 用戶選的門市 | EPBox 可不可以提？ |
+|---|---|
+| 燦坤 五甲店 | ✅ 可以提，寫「燦坤 EPBox」「燦坤五甲店 EPBox」 |
+| 全國電子 屏東店 | ❌ **絕對不能提 EPBox！** 改寫「舊換新服務」「現場估價回收」 |
+| 全國電子 民族店 | ❌ **絕對不能提 EPBox！** 改寫「舊換新服務」「現場估價回收」 |
+| 未指定門市 | ⚠️ 不要提 EPBox（因為不知道是哪個品牌），改寫通用的「舊換新服務」 |
+
+### EPBox 寫法對照
+- ✅ 燦坤：「EPBox 60 秒手機回收」「EPBox 機器人現場估價」「全台 20 間有 EPBox」
+- ✅ 全國電子：「現場舊換新估價」「舊機回收折抵新機」「現場估價立刻折抵」
+- ❌ 全國電子文案絕對不可出現：EPBox / 60 秒回收機器人 / 投入機台
+
+### EPBox 細節提醒（只用於燦坤文案）
+- EPBox **只回收 iPhone**（不收 iPad、Mac、Apple Watch、AirPods）
+- 若燦坤文案是 Mac/iPad/Watch 主題，可以提「Mac 舊換新加碼券」「iPad 舊換新方案」，但不要寫「用 EPBox 回收 iPad/Mac」
+
+# 固定 Hashtag 庫（依品牌使用）
+通用活動 Tag（兩品牌都可用）：#迎新送舊 #M5世代 #讓AI跑進你的日常 #舊iPhone變頭期款 #暑假購機 #EPBox手機回收 #60秒換現金
 
 # 🎯 Hook 鐵律（第一行決定點擊率，最重要！）
 
@@ -525,6 +691,7 @@ PDF 中常見三種優惠類型，文案要對號入座：
 
 ═══════════════════════════════════════════
 # 📚 優秀範例庫（請學習多元風格與調性，每次生成換不同手法）
+# ⚠️ 注意：以下範例多為「燦坤 Apple Shop」品牌，若用戶選「全國電子」門市，請保留範例的「結構/語氣」但把品牌名稱替換為「全國電子」
 ═══════════════════════════════════════════
 
 ## 範例 1｜痛點開場 + 條列具象化（FB 長文）
@@ -858,24 +1025,30 @@ const PLATFORM_LABEL = {
 };
 
 $("generateBtn").addEventListener("click", async () => {
-  if (!pdfText) { alert("請先上傳 PDF"); return; }
+  // 根據當前 Tab 決定用哪個來源
+  const sourceText = currentBrand === "tsannkuen" ? pdfText : xlsxText;
+  if (!sourceText) {
+    alert(currentBrand === "tsannkuen" ? "請先上傳 PDF" : "請先上傳 Excel");
+    return;
+  }
 
   const selectedPlatforms = [...$("platforms").querySelectorAll(".platform-chip.active")].map(el => el.dataset.platform);
   if (selectedPlatforms.length === 0) { alert("至少選一個平台"); return; }
 
   const mainProduct = $("mainProduct").value.trim();
+  const brandName = currentBrand === "tsannkuen" ? "燦坤" : currentBrand === "ekfamily" ? "全國電子" : "";
   const storeName = $("storeName").value.trim();
   const period = $("period").value.trim();
   const audience = $("audience").value.trim();
   const extraNote = $("extraNote").value.trim();
   const systemPrompt = $("systemOverride").value.trim() || DEFAULT_SYSTEM;
 
-  // 智慧截斷：若 PDF 太長且選的是小模型，自動依主商品關鍵字保留相關段落
-  let usedPdfText = pdfText;
+  // 智慧截斷：若太長且選的是小模型，自動依主商品關鍵字保留相關段落
+  let usedPdfText = sourceText;
   const isSmallModel = $("ghModel").value === "gpt-4o-mini";
   const MAX_CHARS = isSmallModel ? 5500 : 28000;
 
-  if (pdfText.length > MAX_CHARS) {
+  if (sourceText.length > MAX_CHARS) {
     if (mainProduct) {
       // 用主商品關鍵字篩出相關行（並擴展同義詞）
       const synonyms = {
@@ -893,7 +1066,7 @@ $("generateBtn").addEventListener("click", async () => {
       }
       keywords = [...new Set(keywords)];
 
-      const lines = pdfText.split("\n");
+      const lines = sourceText.split("\n");
       const matchedLines = lines.filter(line =>
         keywords.some(kw => line.includes(kw))
       );
@@ -909,8 +1082,8 @@ $("generateBtn").addEventListener("click", async () => {
     }
   }
 
-  console.log(`[Debug] 模型: ${$("ghModel").value}`);
-  console.log(`[Debug] 原 PDF: ${pdfText.length} 字 → 送入 AI: ${usedPdfText.length} 字`);
+  console.log(`[Debug] 品牌: ${currentBrand}, 模型: ${$("ghModel").value}`);
+  console.log(`[Debug] 原始: ${sourceText.length} 字 → 送入 AI: ${usedPdfText.length} 字`);
 
   const platformInstructions = selectedPlatforms.map(p => {
     const map = {
@@ -922,7 +1095,7 @@ $("generateBtn").addEventListener("click", async () => {
     return `- ${map[p]}`;
   }).join("\n");
 
-  const userPrompt = `以下是這次的優惠活動 PDF 內容：
+  const userPrompt = `以下是這次的優惠活動內容（${currentBrand === "tsannkuen" ? "PDF 解析" : "Excel 解析"}）：
 
 """
 ${usedPdfText}
@@ -930,7 +1103,15 @@ ${usedPdfText}
 
 # 活動資訊
 ${mainProduct ? `主商品/主題：${mainProduct}` : ""}
-${storeName ? `門市：燦坤 ${storeName} Apple Shop` : "門市：未指定（用泛稱）"}
+${
+  brandName && storeName
+    ? `品牌：${brandName} Apple Shop\n門市：${brandName}${storeName}（${brandName === "燦坤" ? "可提 EPBox" : brandName === "全國電子" ? "禁止提 EPBox，只能寫舊換新" : ""}）`
+    : brandName
+      ? `品牌：${brandName} Apple Shop（${brandName === "燦坤" ? "可提 EPBox" : "禁止提 EPBox，只能寫舊換新"}）`
+      : storeName
+        ? `門市：${storeName}（用戶未指定品牌，請用泛稱「Apple Shop」，不要主動提 EPBox）`
+        : "品牌與門市：未指定，請用泛稱「Apple Shop」，不要提任何品牌名稱、不要主動提 EPBox"
+}
 ${period ? `活動期間：${period}` : ""}
 ${audience ? `主打族群：${audience}` : ""}
 ${extraNote ? `補充：${extraNote}` : ""}
