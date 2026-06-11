@@ -219,7 +219,7 @@
 
     <div class="brand-tabs">
       <div class="brand-tab active" data-brand="tsannkuen">🟡 燦坤 Apple Shop（PDF 上傳）</div>
-      <div class="brand-tab" data-brand="ekfamily">🔴 全國電子 Apple Shop（Excel 上傳）</div>
+      <div class="brand-tab" data-brand="ekfamily">🔴 全國電子 Apple Shop（PDF / Excel 上傳）</div>
     </div>
 
     <!-- 燦坤區塊：PDF 上傳 -->
@@ -235,10 +235,20 @@
       </div>
     </div>
 
-    <!-- 全國電子區塊：Excel 上傳 -->
+    <!-- 全國電子區塊：PDF + Excel 上傳 -->
     <div class="brand-section" id="brand-ekfamily">
       <div class="form-group">
-        <label>📊 優惠活動 Excel（必選，可一次上傳多個檔案）</label>
+        <label>📎 優惠活動 PDF（選填，可一次上傳多個檔案）</label>
+        <label class="pdf-drop" id="ekPdfDrop">
+          <input type="file" id="ekPdfFile" accept="application/pdf" multiple>
+          <div id="ekPdfDropText">點擊或拖曳一個或多個 PDF 至此</div>
+          <div class="pdf-info" id="ekPdfInfo"></div>
+        </label>
+        <div id="ekPdfList" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="form-group">
+        <label>📊 優惠活動 Excel（選填，可一次上傳多個檔案）</label>
         <label class="pdf-drop" id="xlsxDrop">
           <input type="file" id="xlsxFile" accept=".xlsx,.xls" multiple>
           <div id="xlsxDropText">點擊或拖曳一個或多個 Excel 至此</div>
@@ -246,6 +256,8 @@
         </label>
         <div id="xlsxList" style="margin-top:8px;"></div>
       </div>
+
+      <div class="help">💡 PDF 與 Excel 至少需上傳一個，可同時使用</div>
     </div>
 
     <div class="row">
@@ -428,6 +440,81 @@ $("pdfDrop").addEventListener("drop", (e) => {
   if (e.dataTransfer.files[0]) {
     $("pdfFile").files = e.dataTransfer.files;
     $("pdfFile").dispatchEvent(new Event("change"));
+  }
+});
+
+// === 全國電子 PDF 處理 ===
+let ekPdfText = "";
+let ekPdfFiles = [];
+
+function updateEkPdfList() {
+  if (ekPdfFiles.length === 0) {
+    ekPdfText = "";
+    $("ekPdfDrop").classList.remove("has-file");
+    $("ekPdfDropText").textContent = "點擊或拖曳一個或多個 PDF 至此";
+    $("ekPdfInfo").textContent = "";
+    $("ekPdfList").innerHTML = "";
+    return;
+  }
+
+  ekPdfText = ekPdfFiles.map((f, i) =>
+    `\n══════ 檔案 ${i+1}：${f.name} ══════\n${f.text}`
+  ).join("\n");
+
+  $("ekPdfDrop").classList.add("has-file");
+  const totalChars = ekPdfFiles.reduce((s, f) => s + f.text.length, 0);
+  const totalPages = ekPdfFiles.reduce((s, f) => s + f.pages, 0);
+  $("ekPdfDropText").textContent = `✅ 已上傳 ${ekPdfFiles.length} 個 PDF`;
+  $("ekPdfInfo").textContent = `共 ${totalPages} 頁、${totalChars} 字`;
+
+  $("ekPdfList").innerHTML = ekPdfFiles.map((f, i) => `
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#F5EAD9; border:1px solid #D9C6A3; border-radius:6px; margin-top:4px; font-size:13px;">
+      <span>📄 ${f.name}（${f.pages} 頁，${f.text.length} 字）</span>
+      <button type="button" data-idx="${i}" class="ghost remove-ek-pdf" style="padding:2px 8px; font-size:11px;">✕ 移除</button>
+    </div>
+  `).join("");
+
+  $("ekPdfList").querySelectorAll(".remove-ek-pdf").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      ekPdfFiles.splice(idx, 1);
+      updateEkPdfList();
+    });
+  });
+}
+
+$("ekPdfFile").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
+
+  $("ekPdfDropText").textContent = "解析中…";
+  $("ekPdfInfo").textContent = `處理 ${files.length} 個檔案...`;
+
+  for (const file of files) {
+    try {
+      const parsed = await parsePdf(file);
+      if (!ekPdfFiles.some(f => f.name === parsed.name)) {
+        ekPdfFiles.push(parsed);
+      }
+    } catch (err) {
+      alert(`解析失敗：${file.name}\n${err.message}`);
+    }
+  }
+
+  e.target.value = "";
+  updateEkPdfList();
+});
+
+["dragover", "dragenter"].forEach(ev =>
+  $("ekPdfDrop").addEventListener(ev, (e) => e.preventDefault())
+);
+$("ekPdfDrop").addEventListener("drop", (e) => {
+  e.preventDefault();
+  if (e.dataTransfer.files[0]) {
+    $("ekPdfFile").files = e.dataTransfer.files;
+    $("ekPdfFile").dispatchEvent(new Event("change"));
   }
 });
 
@@ -1076,10 +1163,17 @@ const PLATFORM_LABEL = {
 
 $("generateBtn").addEventListener("click", async () => {
   // 根據當前 Tab 決定來源
-  const sourceText = currentBrand === "tsannkuen" ? pdfText : xlsxText;
-  if (!sourceText) {
-    alert(currentBrand === "tsannkuen" ? "請先上傳 PDF" : "請先上傳 Excel");
-    return;
+  let sourceText = "";
+  if (currentBrand === "tsannkuen") {
+    sourceText = pdfText;
+    if (!sourceText) { alert("請先上傳 PDF"); return; }
+  } else {
+    // 全國電子：合併 PDF + Excel（兩種都可用）
+    const parts = [];
+    if (ekPdfText) parts.push(ekPdfText);
+    if (xlsxText) parts.push(xlsxText);
+    sourceText = parts.join("\n\n");
+    if (!sourceText) { alert("請至少上傳一個 PDF 或 Excel"); return; }
   }
 
   const selectedPlatforms = [...$("platforms").querySelectorAll(".platform-chip.active")].map(el => el.dataset.platform);
@@ -1153,7 +1247,7 @@ $("generateBtn").addEventListener("click", async () => {
     return `- ${map[p]}`;
   }).join("\n");
 
-  const sourceLabel = currentBrand === "tsannkuen" ? "PDF 解析" : "Excel 解析";
+  const sourceLabel = currentBrand === "tsannkuen" ? "PDF 解析" : "PDF / Excel 解析";
   const epboxRule = currentBrand === "tsannkuen"
     ? "✅ 可以提 EPBox"
     : "❌ 禁止提 EPBox，只能寫舊換新服務";
