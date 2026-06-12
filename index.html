@@ -1441,7 +1441,7 @@ async function callGitHub(systemPrompt, userPrompt) {
   if (!token) throw new Error("請先填入 GitHub Token");
   const model = $("ghModel").value;
 
-  const resp = await fetch("https://models.inference.ai.azure.com/chat/completions", {
+  const resp = await fetch("https://models.github.ai/inference/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
