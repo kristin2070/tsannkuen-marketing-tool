@@ -293,12 +293,11 @@
         <label>🤖 AI 模型（檔案太長時請換大模型）</label>
         <select id="ghModel">
           <option value="openai/gpt-4o-mini">⭐ GPT-4o mini（推薦・速度快）</option>
-          <option value="openai/gpt-4o">GPT-4o（短檔案才用，限 8000 token）</option>
-          <option value="meta/Llama-3.3-70B-Instruct">Llama 3.3 70B（檔案大時用）</option>
-          <option value="mistral-ai/mistral-large-2411">Mistral Large（檔案大時用）</option>
-          <option value="xai/grok-3">Grok 3（備援大模型）</option>
+          <option value="openai/gpt-4.1-mini">GPT-4.1 mini（檔案大時用・1M token）</option>
+          <option value="openai/gpt-4.1">GPT-4.1（最高品質・1M token）</option>
+          <option value="openai/gpt-4o">GPT-4o（限 8000 token）</option>
         </select>
-        <div class="help">⚠️ 跳 413 太長 / 429 額度不足 → 換另一個模型即可</div>
+        <div class="help">⚠️ 跳 413 太長 → 換成 GPT-4.1 mini 或 GPT-4.1（1M context）</div>
       </div>
     </div>
 
@@ -1308,11 +1307,9 @@ $("generateBtn").addEventListener("click", async () => {
   // 智慧截斷（依模型 context 大小）
   let usedText = sourceText;
   const model = $("ghModel").value;
-  const MAX_CHARS = model.includes("gpt-4o-mini") ? 4000
+  const MAX_CHARS = model.includes("gpt-4.1") ? 100000
+    : model.includes("gpt-4o-mini") ? 4000
     : model.includes("gpt-4o") ? 3500
-    : model.includes("Llama") ? 25000
-    : model.includes("mistral") || model.includes("Mistral") ? 25000
-    : model.includes("grok") ? 25000
     : 4000;
 
   if (sourceText.length > MAX_CHARS) {
@@ -1400,11 +1397,13 @@ ${selectedPlatforms.map(p => `  "${p}": "..."`).join(",\n")}
 
   // Token 預估（粗估：1 中文字 ≈ 1.5 token）
   const estimatedTokens = Math.ceil((systemPrompt.length + userPrompt.length) * 1.5);
-  const tokenLimit = (model.includes("gpt-4o-mini") || model.includes("gpt-4o")) ? 8000 : 100000;
+  const tokenLimit = model.includes("gpt-4.1") ? 1000000
+    : (model.includes("gpt-4o-mini") || model.includes("gpt-4o")) ? 8000
+    : 100000;
 
   if (estimatedTokens > tokenLimit) {
-    const suggestion = (model.includes("gpt-4o-mini") || model.includes("gpt-4o"))
-      ? "請從上方「🤖 AI 模型」切換為 Llama 3.3 70B 或 Mistral Large（支援大檔案）"
+    const suggestion = (model.includes("gpt-4o-mini") || model.includes("gpt-4o")) && !model.includes("gpt-4.1")
+      ? "請從上方「🤖 AI 模型」切換為 GPT-4.1 mini 或 GPT-4.1（支援超大檔案）"
       : "請減少檔案內容或縮短對照表";
     if (!confirm(`⚠️ 預估 ${estimatedTokens} tokens，可能超過模型限制 ${tokenLimit}\n\n建議：${suggestion}\n\n仍要嘗試嗎？`)) {
       return;
