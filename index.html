@@ -273,23 +273,21 @@
 
     <div class="provider-section active" id="github-section">
       <div class="form-group">
-        <label>GitHub Personal Access Token</label>
-        <input type="password" id="ghToken" placeholder="貼上 ghp_... 開頭的 Token">
+        <label>Google Gemini API Key</label>
+        <input type="password" id="ghToken" placeholder="貼上 AIza... 開頭的 API Key">
         <details style="margin-top: 6px;">
-          <summary>🔰 第一次使用？點這裡看 5 步驟申請 Token</summary>
+          <summary>🔰 第一次使用？點這裡看 3 步驟申請 API Key（免費）</summary>
           <div class="help" style="margin-top: 8px; padding: 12px; background: #F5EAD9; border-radius: 8px; line-height: 1.8;">
-            1️⃣ 開 <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings → Tokens (classic)</a><br>
-            2️⃣ 點「Generate new token (classic)」<br>
-            3️⃣ Note 填「Apple Shop 文案器」，Expiration 選 90 days<br>
-            4️⃣ Scopes <strong>全部不用勾</strong>（預設就能用）<br>
-            5️⃣ 拉到底點綠色「Generate token」<br>
-            6️⃣ 複製 <code>ghp_xxx</code> 字串貼到上方欄位<br>
+            1️⃣ 開 <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio → Get API Key</a>（用 Google 帳號登入）<br>
+            2️⃣ 點藍色「Create API key」按鈕<br>
+            3️⃣ 複製 <code>AIza...</code> 字串貼到上方欄位<br>
             <br>
-            🔒 Token 只存在你的瀏覽器，不會上傳，安全無虞
+            💡 免費額度：Gemini 2.0 Flash 每分鐘 15 次、每天 1500 次<br>
+            🔒 API Key 只存在你的瀏覽器，不會上傳，安全無虞
           </div>
         </details>
       </div>
-            <input type="hidden" id="ghModel" value="openai/gpt-4o">
+            <input type="hidden" id="ghModel" value="gemini-2.0-flash">
     </div>
 
   </div>
@@ -429,8 +427,16 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dis
 
 const $ = (id) => document.getElementById(id);
 
-// 還原儲存
-$("ghToken").value = localStorage.getItem("ts_ghtoken") || "";
+// 還原儲存（如果是舊的 GitHub token 就自動清掉，避免誤用）
+{
+  const saved = localStorage.getItem("ts_ghtoken") || "";
+  if (saved.startsWith("ghp_") || saved.startsWith("github_pat_")) {
+    localStorage.removeItem("ts_ghtoken");
+    $("ghToken").value = "";
+  } else {
+    $("ghToken").value = saved;
+  }
+}
 
 ["ghToken"].forEach(id => {
   $(id).addEventListener("change", () => localStorage.setItem(`ts_${id}`.toLowerCase(), $(id).value));
@@ -1429,15 +1435,15 @@ ${selectedPlatforms.map(p => `  "${p}": "..."`).join(",\n")}
 
   // Token 預估（粗估：1 中文字 ≈ 1.5 token）
   const estimatedTokens = Math.ceil((systemPrompt.length + userPrompt.length) * 1.5);
-  const tokenLimit = 8000;  // GitHub Models 共同限制
+  const tokenLimit = 1000000;  // Gemini 2.0 Flash 支援 1M tokens 輸入
 
   if (estimatedTokens > tokenLimit) {
-    if (!confirm(`⚠️ 預估 ${estimatedTokens} tokens，超過 GitHub Models 限制（${tokenLimit}）\n\n💡 最佳做法：\n1. 不要上傳整份 PDF/Excel\n2. 只把總部活動文字稿（10-20 行重點）貼到「🎬 對照表」欄位\n3. token 用量會降到 5000 以下，速度也更快\n4. 文案還會更準確（沒對照表 AI 容易串錯金額）\n\n要繼續嘗試送出嗎？（高機率失敗）`)) {
+    if (!confirm(`⚠️ 預估 ${estimatedTokens} tokens，超過 Gemini 限制（${tokenLimit}）\n\n要繼續嘗試送出嗎？`)) {
       return;
     }
   }
 
-  $("results").innerHTML = `<div class="card"><div class="loading"><div class="spinner"></div>AI 思考中，約 20–30 秒…<br><span style="font-size:12px; opacity:0.7; margin-left:8px;">（預估 ${estimatedTokens} tokens / 上限 ${tokenLimit}）</span></div></div>`;
+  $("results").innerHTML = `<div class="card"><div class="loading"><div class="spinner"></div>AI 思考中，約 10–20 秒…<br><span style="font-size:12px; opacity:0.7; margin-left:8px;">（預估 ${estimatedTokens} tokens）</span></div></div>`;
   $("generateBtn").disabled = true;
 
   try {
@@ -1464,38 +1470,35 @@ ${selectedPlatforms.map(p => `  "${p}": "..."`).join(",\n")}
 
 async function callGitHub(systemPrompt, userPrompt) {
   const token = $("ghToken").value.trim();
-  if (!token) throw new Error("請先填入 GitHub Token");
-  const model = $("ghModel").value;
+  if (!token) throw new Error("請先填入 Google Gemini API Key");
+  const model = $("ghModel").value || "gemini-2.0-flash";
 
   let resp;
   try {
-    resp = await fetch("https://models.github.ai/inference/chat/completions", {
+    resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(token)}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-        "X-GitHub-Api-Version": "2022-11-28",
-        "Accept": "application/vnd.github+json",
       },
       body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [
+          { role: "user", parts: [{ text: userPrompt }] },
         ],
-        temperature: 0.85,
-        response_format: { type: "json_object" },
+        generationConfig: {
+          temperature: 0.85,
+          responseMimeType: "application/json",
+        },
       }),
     });
   } catch (netErr) {
     // fetch 本身失敗（Safari 會顯示 "Load failed"，Chrome 顯示 "Failed to fetch"）
     throw new Error(
-      `無法連線到 GitHub Models（${netErr.message}）\n\n` +
+      `無法連線到 Google Gemini（${netErr.message}）\n\n` +
       `💡 可能原因：\n` +
-      `1. Token 已過期或被撤銷 → 重新產生 fine-grained token（權限勾選 Models: read）\n` +
-      `2. 今日該模型額度已用完 → 換另一個模型（例如 openai/gpt-4o-mini）\n` +
-      `3. 網路 / VPN / 公司 Proxy 擋住 models.github.ai\n` +
-      `4. GitHub Models 服務暫時中斷 → 稍後再試\n\n` +
+      `1. API Key 錯誤或未啟用 → 重新到 https://aistudio.google.com/apikey 產一個\n` +
+      `2. 網路 / VPN / 公司 Proxy 擋住 generativelanguage.googleapis.com\n` +
+      `3. Google 服務暫時中斷 → 稍後再試\n\n` +
       `除錯：打開瀏覽器「開發者工具 → Console / Network」查看實際錯誤`
     );
   }
@@ -1504,16 +1507,16 @@ async function callGitHub(systemPrompt, userPrompt) {
     const err = await resp.text();
     let hint = "";
     if (resp.status === 429) {
-      hint = "\n\n💡 解法：此模型今日額度已用完";
-    } else if (resp.status === 413) {
-      hint = "\n\n💡 GitHub Models 所有模型都限 8000 tokens。\n\n最佳解法：\n1. 不要上傳整份檔案\n2. 只把活動文字稿（10-20 行）貼到「🎬 對照表」欄位\n3. 文案反而會更準確（避免 AI 串錯金額）";
-    } else if (resp.status === 401) {
-      hint = "\n\n💡 解法：Token 失效或權限不足，請重新申請";
+      hint = "\n\n💡 解法：已達每分鐘 15 次或每日 1500 次額度上限，等一下再試";
+    } else if (resp.status === 400) {
+      hint = "\n\n💡 解法：內容可能太長或格式異常。建議只把活動文字稿（10-20 行重點）貼到「🎬 對照表」欄位，不要上傳整份 PDF";
+    } else if (resp.status === 401 || resp.status === 403) {
+      hint = "\n\n💡 解法：API Key 失效或權限不足，請重新到 https://aistudio.google.com/apikey 申請";
     }
-    throw new Error(`GitHub API 錯誤 (${resp.status})${hint}\n\n原始錯誤：\n${err}`);
+    throw new Error(`Gemini API 錯誤 (${resp.status})${hint}\n\n原始錯誤：\n${err}`);
   }
   const data = await resp.json();
-  const text = data.choices?.[0]?.message?.content || "";
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
   try { return JSON.parse(text); }
   catch { throw new Error("回傳格式異常：\n" + text); }
 }
