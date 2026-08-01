@@ -305,7 +305,7 @@
           </div>
         </details>
       </div>
-            <input type="hidden" id="ghModel" value="openai/gpt-oss-20b">
+            <input type="hidden" id="ghModel" value="llama-3.3-70b-versatile">
     </div>
 
   </div>
@@ -1530,7 +1530,7 @@ ${selectedPlatforms.map(p => `  "${p}": "..."`).join(",\n")}
 
   // Token 預估（粗估：1 中文字 ≈ 1.5 token）
   const estimatedTokens = Math.ceil((systemPrompt.length + userPrompt.length) * 1.5);
-  const tokenLimit = 150000;  // Groq openai/gpt-oss-20b TPM 200k，留 50k 餘裕
+  const tokenLimit = 10000;  // Groq llama-3.3-70b-versatile TPM 12k，留 2k 給 system prompt
 
   if (estimatedTokens > tokenLimit) {
     if (!confirm(`⚠️ 預估 ${estimatedTokens} tokens，超過 Groq 限制（${tokenLimit}）\n\n要繼續嘗試送出嗎？`)) {
@@ -1566,7 +1566,7 @@ ${selectedPlatforms.map(p => `  "${p}": "..."`).join(",\n")}
 async function callGitHub(systemPrompt, userPrompt) {
   const token = $("ghToken").value.trim();
   if (!token) throw new Error("請先填入 Groq API Key");
-  const model = $("ghModel").value || "openai/gpt-oss-20b";
+  const model = $("ghModel").value || "llama-3.3-70b-versatile";
 
   let resp;
   try {
