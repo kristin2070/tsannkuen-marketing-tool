@@ -427,6 +427,24 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dis
 
 const $ = (id) => document.getElementById(id);
 
+// 全域攔截拖放：防止使用者不小心把 PDF 拖到虛線框以外的地方，
+// 導致 Safari/Chrome 直接開啟 PDF 檔案（取代整個網頁）
+["dragenter", "dragover", "dragleave", "drop"].forEach(eventName => {
+  window.addEventListener(eventName, (e) => {
+    // 如果拖放發生在標記為 .pdf-drop 的區塊內，讓它自己處理
+    if (e.target.closest(".pdf-drop")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (eventName === "drop") {
+      // 拖到區塊外時給提示
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        alert("⚠️ 請把檔案拖到虛線框「點擊或拖曳 PDF 至此」的區域內喔！");
+      }
+    }
+  }, false);
+});
+
 // 還原儲存（如果是舊的 GitHub / Gemini key 就自動清掉，避免誤用）
 {
   const saved = localStorage.getItem("ts_ghtoken") || "";
