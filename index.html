@@ -77,6 +77,19 @@
   .pdf-drop:hover { border-color: var(--accent); background: #FAF3E8; }
   .pdf-drop.has-file { border-color: var(--accent); background: #F5EAD9; }
   .pdf-drop input { display: none; }
+  .pdf-drop-btn {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 10px 24px;
+    background: var(--accent);
+    color: white;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    pointer-events: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .pdf-drop:hover .pdf-drop-btn { background: var(--primary); }
   .pdf-info { font-size: 13px; color: var(--muted); margin-top: 6px; }
   button.primary {
     width: 100%; padding: 14px; background: var(--primary);
@@ -306,7 +319,9 @@
         <label>📎 優惠活動 PDF（必選，可一次上傳多個檔案）</label>
         <label class="pdf-drop" id="pdfDrop">
           <input type="file" id="pdfFile" accept="application/pdf" multiple>
-          <div id="pdfDropText">點擊或拖曳一個或多個 PDF 至此</div>
+          <div style="font-size:32px;">📁</div>
+          <div id="pdfDropText">點擊按鈕選擇檔案，或直接拖曳一個或多個 PDF 至此</div>
+          <div class="pdf-drop-btn">📂 選擇 PDF 檔案</div>
           <div class="pdf-info" id="pdfInfo"></div>
         </label>
         <div id="pdfList" style="margin-top:8px;"></div>
@@ -319,7 +334,9 @@
         <label>📎 優惠活動 PDF（選填，可一次上傳多個檔案）</label>
         <label class="pdf-drop" id="ekPdfDrop">
           <input type="file" id="ekPdfFile" accept="application/pdf" multiple>
-          <div id="ekPdfDropText">點擊或拖曳一個或多個 PDF 至此</div>
+          <div style="font-size:32px;">📁</div>
+          <div id="ekPdfDropText">點擊按鈕選擇檔案，或直接拖曳一個或多個 PDF 至此</div>
+          <div class="pdf-drop-btn">📂 選擇 PDF 檔案</div>
           <div class="pdf-info" id="ekPdfInfo"></div>
         </label>
         <div id="ekPdfList" style="margin-top:8px;"></div>
@@ -329,7 +346,9 @@
         <label>📊 優惠活動 Excel（選填，可一次上傳多個檔案）</label>
         <label class="pdf-drop" id="xlsxDrop">
           <input type="file" id="xlsxFile" accept=".xlsx,.xls" multiple>
-          <div id="xlsxDropText">點擊或拖曳一個或多個 Excel 至此</div>
+          <div style="font-size:32px;">📊</div>
+          <div id="xlsxDropText">點擊按鈕選擇檔案，或直接拖曳一個或多個 Excel 至此</div>
+          <div class="pdf-drop-btn">📂 選擇 Excel 檔案</div>
           <div class="pdf-info" id="xlsxInfo"></div>
         </label>
         <div id="xlsxList" style="margin-top:8px;"></div>
